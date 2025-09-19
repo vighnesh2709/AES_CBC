@@ -10,7 +10,7 @@ void printBlock(unsigned char data[])
         {
             printf("\n");
         }
-        printf("%c", data[i]);
+        printf("%c ", data[i]);
     }
     printf("\n");
     printf("\n");

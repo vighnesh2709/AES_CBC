@@ -9,3 +9,4 @@ void subBytes();
 void shiftRows();
 void mixColumns();
 void addRoundKey();
+void encryptBlock(unsigned char block[16]);

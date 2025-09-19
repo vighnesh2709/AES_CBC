@@ -1,5 +1,7 @@
-#include<stdio.h>
-
+#include <stdio.h>
+#include "keyScheduling.h"
+#include "encryption.h"
+#include "helpers.h"
 // AES inverse S-box
 static const unsigned char inv_sbox[256] = {
     0x52,0x09,0x6a,0xd5,0x30,0x36,0xa5,0x38,0xbf,0x40,0xa3,0x9e,0x81,0xf3,0xd7,0xfb,
@@ -17,22 +19,27 @@ static const unsigned char inv_sbox[256] = {
     0x1f,0xdd,0xa8,0x33,0x88,0x07,0xc7,0x31,0xb1,0x12,0x10,0x59,0x27,0x80,0xec,0x5f,
     0x60,0x51,0x7f,0xa9,0x19,0xb5,0x4a,0x0d,0x2d,0xe5,0x7a,0x9f,0x93,0xc9,0x9c,0xef,
     0xa0,0xe0,0x3b,0x4d,0xae,0x2a,0xf5,0xb0,0xc8,0xeb,0xbb,0x3c,0x83,0x53,0x99,0x61,
-    0x17,0x2b,0x04,0x7e,0xba,0x77,0xd6,0x26,0xe1,0x69,0x14,0x63,0x55,0x21,0x0c,0x7d
+    0x17,0x2b,0x04,0x7e,0xba,0x77,0xd6,0x26,0xe1,0x69,0x14,0x63,0x55,0x21,0x0c,0x7d,
 };
 
+
 // Galois Field multiplication function (needed for invMixColumns)
-unsigned char gmul(unsigned char a, unsigned char b) {
+unsigned char gmul(unsigned char a, unsigned char b)
+{
     unsigned char result = 0;
     unsigned char high_bit;
-    
-    for (int i = 0; i < 8; i++) {
-        if (b & 1) {
+
+    for (int i = 0; i < 8; i++)
+    {
+        if (b & 1)
+        {
             result ^= a;
         }
-        
+
         high_bit = a & 0x80;
         a <<= 1;
-        if (high_bit) {
+        if (high_bit)
+        {
             a ^= 0x1b; // AES irreducible polynomial x^8 + x^4 + x^3 + x + 1
         }
         b >>= 1;
@@ -43,7 +50,8 @@ unsigned char gmul(unsigned char a, unsigned char b) {
 void invSubBytes(unsigned char block[16])
 {
     printf("InvSubBytes called\n");
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 16; i++)
+    {
         block[i] = inv_sbox[block[i]];
     }
 }
@@ -85,7 +93,8 @@ void invShiftRows(unsigned char block[16])
 void invMixColumns(unsigned char block[16])
 {
     printf("InvMixColumns called\n");
-    for (int c = 0; c < 4; c++) {
+    for (int c = 0; c < 4; c++)
+    {
         int col = c * 4;
         unsigned char a0 = block[col + 0];
         unsigned char a1 = block[col + 1];
@@ -97,4 +106,26 @@ void invMixColumns(unsigned char block[16])
         block[col + 2] = gmul(a0, 0x0d) ^ gmul(a1, 0x09) ^ gmul(a2, 0x0e) ^ gmul(a3, 0x0b);
         block[col + 3] = gmul(a0, 0x0b) ^ gmul(a1, 0x0d) ^ gmul(a2, 0x09) ^ gmul(a3, 0x0e);
     }
+}
+
+void decryptBlock(unsigned char block[16])
+{
+    
+    addRoundKey(block, roundKeys[10]);
+
+    
+    for (int round = 9; round > 0; round--)
+    {
+        invShiftRows(block);
+        invSubBytes(block);
+        addRoundKey(block, roundKeys[round]);
+        invMixColumns(block);
+        printHex(block);
+
+    }
+
+    
+    invShiftRows(block);
+    invSubBytes(block);
+    addRoundKey(block, roundKeys[0]);
 }

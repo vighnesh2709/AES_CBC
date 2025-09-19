@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
-
+#include "keyScheduling.h"
+#include "helpers.h"
 // AES S-box
 static const unsigned char sbox[256] = {
     // 0     1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
@@ -19,25 +20,27 @@ static const unsigned char sbox[256] = {
     0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a,
     0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e,
     0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
-    0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
-};
+    0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16};
 
 // multiply by 2 in GF(2^8)
-static inline unsigned char xtime(unsigned char x) {
+static inline unsigned char xtime(unsigned char x)
+{
     return (x << 1) ^ ((x & 0x80) ? 0x1b : 0x00);
 }
 
 // multiply in GF(2^8)
-static inline unsigned char gmul(unsigned char a, unsigned char b) {
+static inline unsigned char gmul(unsigned char a, unsigned char b)
+{
     unsigned char p = 0;
-    while (b) {
-        if (b & 1) p ^= a;
+    while (b)
+    {
+        if (b & 1)
+            p ^= a;
         a = xtime(a);
         b >>= 1;
     }
     return p;
 }
-
 
 void shiftRows(unsigned char block[16])
 {
@@ -73,7 +76,8 @@ void shiftRows(unsigned char block[16])
 void addRoundKey(unsigned char block[16], unsigned char key[16])
 {
     printf("Add Round Key called\n");
-    for(int i = 0 ; i < 16 ; i++){
+    for (int i = 0; i < 16; i++)
+    {
         block[i] = block[i] ^ key[i];
     }
 }
@@ -81,7 +85,8 @@ void addRoundKey(unsigned char block[16], unsigned char key[16])
 void subBytes(unsigned char block[16])
 {
     printf("sub bytes called\n");
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 16; i++)
+    {
         block[i] = sbox[block[i]];
     }
 }
@@ -89,7 +94,8 @@ void subBytes(unsigned char block[16])
 void mixColumns(unsigned char block[16])
 {
     printf("Mix columns called\n");
-    for (int c = 0; c < 4; c++) {
+    for (int c = 0; c < 4; c++)
+    {
         int col = c * 4;
         unsigned char a0 = block[col + 0];
         unsigned char a1 = block[col + 1];
@@ -101,4 +107,23 @@ void mixColumns(unsigned char block[16])
         block[col + 2] = a0 ^ a1 ^ gmul(a2, 2) ^ gmul(a3, 3);
         block[col + 3] = gmul(a0, 3) ^ a1 ^ a2 ^ gmul(a3, 2);
     }
+}
+
+void encryptBlock(unsigned char block[16])
+{
+
+    addRoundKey(block, roundKeys[0]);
+
+    for (int round = 1; round < 10; round++)
+    {
+        subBytes(block);
+        shiftRows(block);
+        mixColumns(block);
+        addRoundKey(block, roundKeys[round]);
+        printHex(block);
+    }
+
+    subBytes(block);
+    shiftRows(block);
+    addRoundKey(block, roundKeys[10]);
 }
